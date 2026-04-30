@@ -1,40 +1,34 @@
 # main.py
-import pandas as pd
 from core.structure import MarketStructure
 from core.poi import POI
 from core.liquidity import LiquidityEngine
+from core.data_fetcher import fetch_candles
+from core.visualization import plot_with_poi
 
-print("🚀 Liquidity & Inducement Detection Engine V2")
-print("=" * 60)
+print("🚀 Liquidity & Inducement Pure Price Action V2")
+print("=" * 70)
 
-# Test with dummy data (we'll replace with real data soon)
-def create_dummy_data():
-    dates = pd.date_range("2025-04-01", periods=50)
-    data = {
-        'open':  [65000 + i*100 + (i%5)*50 for i in range(50)],
-        'high':  [65100 + i*100 + (i%5)*80 for i in range(50)],
-        'low':   [64900 + i*100 - (i%5)*60 for i in range(50)],
-        'close': [65050 + i*100 + (i%3)*30 for i in range(50)],
-    }
-    df = pd.DataFrame(data, index=dates)
-    # Simulate a BOS + pullback
-    df.loc[df.index[-10:], 'low'] = df['low'].iloc[-10:] - 800
-    df.loc[df.index[-5:], 'high'] = df['high'].iloc[-5:] + 1200
-    return df
+df = fetch_candles("BTC/USDT", "4h", 500)
 
-df = create_dummy_data()
-
-# Run detection
 structure = MarketStructure()
 poi_engine = POI()
 liquidity = LiquidityEngine()
 
 bos = structure.detect_bos(df, "bullish")
-pri_poi = poi_engine.identify_pri_poi(df, "bullish")
+pri_poi_result = poi_engine.identify_pri_poi(df, "bullish")
 inducement = liquidity.find_inducement_liquidity(df, "bullish")
 
-print(f"BOS Detected: {bos}")
-print(f"PRI POI: {pri_poi}")
+print(f"\n📊 BTC/USDT 4H Results:")
+print(f"BOS (Bullish): {bos}")
+print(f"PRI POI Found: {pri_poi_result.get('valid')}")
+if pri_poi_result.get('valid'):
+    print(f"PRI POI Zone: {pri_poi_result.get('zone')}")
+
 print(f"Inducement Liquidity: {inducement}")
 
-print("\n✅ Detection engine initialized successfully!")
+try:
+    plot_with_poi(df, pri_poi_result.get('zone'), "BTC/USDT 4H - PRI POI Detection")
+except Exception as e:
+    print(f"Plot skipped: {e}")
+
+print("\n✅ Engine updated!")
